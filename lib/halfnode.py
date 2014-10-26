@@ -23,6 +23,9 @@ log.debug("Got to Halfnode")
 if settings.COINDAEMON_ALGO == 'scrypt':
     log.debug("########################################### Loading LTC Scrypt #########################################################")
     import ltc_scrypt
+if settings.COINDAEMON_ALGO == 'scrypt-nm':
+    log.debug("########################################### Loading APT Scrypt #########################################################")
+    import apt_scrypt
 elif settings.COINDAEMON_ALGO == 'quark':
     log.debug("########################################### Loading Quark Support #########################################################")
     import quark_hash
@@ -293,6 +296,18 @@ class CBlock(object):
                r.append(struct.pack("<I", self.nBits))
                r.append(struct.pack("<I", self.nNonce))
                self.scrypt = uint256_from_str(ltc_scrypt.getPoWHash(''.join(r)))
+           return self.scrypt
+    elif settings.COINDAEMON_ALGO == 'scrypt-nm':
+       def calc_scrypt(self):
+           if self.scrypt is None:
+               r = []
+               r.append(struct.pack("<i", self.nVersion))
+               r.append(ser_uint256(self.hashPrevBlock))
+               r.append(ser_uint256(self.hashMerkleRoot))
+               r.append(struct.pack("<I", self.nTime))
+               r.append(struct.pack("<I", self.nBits))
+               r.append(struct.pack("<I", self.nNonce))
+               self.scrypt = uint256_from_str(apt_scrypt.getPoWHash(''.join(r), self.hashPrevBlock))
            return self.scrypt
     elif settings.COINDAEMON_ALGO == 'quark':
          def calc_quark(self):

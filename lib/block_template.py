@@ -28,13 +28,13 @@ class BlockTemplate(halfnode.CBlock):
     
     def __init__(self, timestamper, coinbaser, job_id):
         log.debug("Got To  Block_template.py")
-        log.debug("Got To Block_template.py")
         super(BlockTemplate, self).__init__()
         
         self.job_id = job_id 
         self.timestamper = timestamper
         self.coinbaser = coinbaser
-        
+
+        self.prevhash = ''
         self.prevhash_bin = '' # reversed binary form of prevhash
         self.prevhash_hex = ''
         self.timedelta = 0
@@ -67,6 +67,7 @@ class BlockTemplate(halfnode.CBlock):
 
         self.height = data['height']
         self.nVersion = data['version']
+        self.prevhash = data['previousblockhash'];
         self.hashPrevBlock = int(data['previousblockhash'], 16)
         self.nBits = int(data['bits'], 16)
 

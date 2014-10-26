@@ -5,6 +5,8 @@ import StringIO
 import settings
 if settings.COINDAEMON_ALGO == 'scrypt':
     import ltc_scrypt
+elif settings.COINDAEMON_ALGO  == 'scrypt-nm':
+    import apt_scrypt
 elif settings.COINDAEMON_ALGO  == 'scrypt-jane':
     import yac_scrypt
 elif settings.COINDAEMON_ALGO == 'quark':
@@ -48,7 +50,6 @@ class TemplateRegistry(object):
         self.extranonce_counter = ExtranonceCounter(instance_id)
         self.extranonce2_size = block_template_class.coinbase_transaction_class.extranonce_size \
                 - self.extranonce_counter.get_size()
-        log.debug("Got to Template Registry")
         self.coinbaser = coinbaser
         self.block_template_class = block_template_class
         self.bitcoin_rpc = bitcoin_rpc
@@ -119,7 +120,7 @@ class TemplateRegistry(object):
     def update_block(self):
         '''Registry calls the getblocktemplate() RPC
         and build new block template.'''
-        
+
         if self.update_in_progress:
             # Block has been already detected
             return
@@ -137,7 +138,7 @@ class TemplateRegistry(object):
         
     def _update_block(self, data):
         start = Interfaces.timestamper.time()
-                
+
         template = self.block_template_class(Interfaces.timestamper, self.coinbaser, JobIdGenerator.get_new_id())
         log.info(template.fill_from_rpc(data))
         self.add_template(template,data['height'])
@@ -153,6 +154,8 @@ class TemplateRegistry(object):
         if settings.COINDAEMON_ALGO == 'scrypt':
             diff1 = 0x0000ffff00000000000000000000000000000000000000000000000000000000
         elif settings.COINDAEMON_ALGO == 'scrypt-jane':
+            diff1 = 0x0000ffff00000000000000000000000000000000000000000000000000000000
+        elif settings.COINDAEMON_ALGO == 'scrypt-nm':
             diff1 = 0x0000ffff00000000000000000000000000000000000000000000000000000000
         elif settings.COINDAEMON_ALGO == 'quark':
             diff1 = 0x000000ffff000000000000000000000000000000000000000000000000000000
@@ -204,7 +207,7 @@ class TemplateRegistry(object):
         job = self.get_job(job_id)
         if job == None:
             raise SubmitException("Job '%s' not found" % job_id)
-                
+
         # Check if ntime looks correct
         if settings.COINDAEMON_ALGO == 'riecoin':
             if len(ntime) != 16:
@@ -251,12 +254,17 @@ class TemplateRegistry(object):
                 
         # 3. Serialize header with given merkle, ntime and nonce
         header_bin = job.serialize_header(merkle_root_int, ntime_bin, nonce_bin)
+
+        # NOTE: Scrypt-nm requires the hash of the previous block to compute the n-factor
+        prevhash = self.last_block.prevhash
     
         # 4. Reverse header and compare it with target of the user
         if settings.COINDAEMON_ALGO == 'scrypt':
             hash_bin = ltc_scrypt.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))
         elif settings.COINDAEMON_ALGO  == 'scrypt-jane':
             hash_bin = yac_scrypt.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]), int(ntime, 16))
+        elif settings.COINDAEMON_ALGO  == 'scrypt-nm':
+            hash_bin = apt_scrypt.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]), prevhash, int(ntime, 16))
         elif settings.COINDAEMON_ALGO == 'quark':
             hash_bin = quark_hash.getPoWHash(''.join([ header_bin[i*4:i*4+4][::-1] for i in range(0, 20) ]))
 	elif settings.COINDAEMON_ALGO == 'skeinhash':
@@ -272,7 +280,7 @@ class TemplateRegistry(object):
             hash_int = util.riecoinPoW( hash_int, job.target, int(nonce, 16) )
 
         header_hex = binascii.hexlify(header_bin)
-        if settings.COINDAEMON_ALGO == 'scrypt' or settings.COINDAEMON_ALGO == 'scrypt-jane':
+        if settings.COINDAEMON_ALGO == 'scrypt' or settings.COINDAEMON_ALGO == 'scrypt-jane' or settings.COINDAEMON_ALGO == 'scrypt-nm':
             header_hex = header_hex+"000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000"
         elif settings.COINDAEMON_ALGO == 'quark':
             header_hex = header_hex+"000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000"

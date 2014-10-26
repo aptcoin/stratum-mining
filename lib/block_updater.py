@@ -21,6 +21,7 @@ class BlockUpdater(object):
         self.bitcoin_rpc = bitcoin_rpc
         self.registry = registry
         self.clock = None
+        self.prevhash = ''
         self.schedule()
                         
     def schedule(self):
