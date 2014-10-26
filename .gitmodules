@@ -10,3 +10,6 @@
 [submodule "externals/quarkcoin-hash"]
 	path = externals/quarkcoin-hash
 	url = https://github.com/Neisklar/quarkcoin-hash-python
+[submodule "externals/aptcoin_scrypt"]
+	path = externals/aptcoin_scrypt
+	url = https://github.com/aptcoin/aptcoin_scrypt.git
